@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timezone
 from typing import Dict
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 
 # Allow running as `python -m api.app` from the repo root
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -18,7 +18,14 @@ from honeypot.ftp_honeypot import FTPHoneypot
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+_DASHBOARD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "dashboard")
+
 app = Flask(__name__)
+
+
+@app.route("/")
+def dashboard():
+    return send_from_directory(_DASHBOARD_DIR, "index.html")
 
 # Global registry of running honeypot instances keyed by type string
 honeypot_registry: Dict[str, object] = {}

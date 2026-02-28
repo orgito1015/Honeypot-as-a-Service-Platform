@@ -86,11 +86,6 @@ class AttackAnalyzer:
             "total_attacks": sum(type_counts.values()),
         }
 
-    def _get_attack_history(self, ip: str) -> int:
-        """Return the number of previously recorded attacks from *ip*."""
-        with self._data_lock:
-            return self._attack_counts.get(ip, 0)
-
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------

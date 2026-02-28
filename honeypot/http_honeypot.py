@@ -97,6 +97,8 @@ class HTTPHoneypot(BaseHoneypot):
         request_line = lines[0]
         parts = request_line.split()
         method = parts[0] if parts else "UNKNOWN"
+        if method not in _HTTP_METHODS:
+            method = "UNKNOWN"
         path = parts[1] if len(parts) > 1 else "/"
         headers = {
             line.split(":", 1)[0].strip(): line.split(":", 1)[1].strip()
