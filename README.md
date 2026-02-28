@@ -206,6 +206,39 @@ python -m unittest discover tests/
 
 ---
 
+## Data Structures
+
+### Attack Event
+
+Each attack event returned by `/api/attacks` contains:
+
+| Field           | Type    | Description                                      |
+|-----------------|---------|--------------------------------------------------|
+| `id`            | integer | Auto-incremented primary key                     |
+| `timestamp`     | string  | ISO 8601 UTC timestamp of the attack             |
+| `attacker_ip`   | string  | Source IP address of the attacker                |
+| `attacker_port` | integer | Source port of the attacker                      |
+| `honeypot_type` | string  | `ssh`, `http`, or `ftp`                          |
+| `attack_type`   | string  | e.g. `SSH_BRUTE_FORCE`, `HTTP_PROBE`, `FTP_BRUTE_FORCE` |
+| `raw_data`      | string  | Sanitized payload (HTML special chars escaped)   |
+| `threat_level`  | string  | `LOW`, `MEDIUM`, `HIGH`, or `CRITICAL`           |
+| `attack_pattern`| string  | `BRUTE_FORCE`, `RECONNAISSANCE`, or `EXPLOIT_ATTEMPT` |
+
+### Alert
+
+Each alert returned by `/api/alerts` contains:
+
+| Field        | Type    | Description                                           |
+|--------------|---------|-------------------------------------------------------|
+| `id`         | integer | Auto-incremented primary key                          |
+| `timestamp`  | string  | ISO 8601 UTC timestamp of the alert                   |
+| `attacker_ip`| string  | Source IP address that triggered the alert            |
+| `alert_type` | string  | `HIGH_THREAT` or `DANGEROUS_COMMAND`                  |
+| `detail`     | string  | Summary of threat level, attack type, and raw data    |
+| `attack_id`  | integer | Foreign key to the associated attack event            |
+
+---
+
 ## Threat Levels
 
 | Level    | Condition                                         |
@@ -215,8 +248,24 @@ python -m unittest discover tests/
 | HIGH     | ≥ 10 hits from the same IP                        |
 | CRITICAL | ≥ 25 hits from the same IP                        |
 
-HIGH and CRITICAL events automatically generate an alert stored in the `alerts` table.  
-Connections containing dangerous commands (`wget`, `curl`, `chmod`, `bash`, etc.) also trigger alerts.
+HIGH and CRITICAL events automatically generate a `HIGH_THREAT` alert in the `alerts` table.  
+Connections containing any of the following dangerous command keywords also trigger a `DANGEROUS_COMMAND` alert:
+
+`wget`, `curl`, `chmod`, `rm -rf`, `bash`, `nc`, `python`, `perl`
+
+---
+
+## Security Hardening
+
+The platform incorporates several hardening measures:
+
+- **SQL injection prevention** – filter columns are validated against an allowlist (`honeypot_type`, `attack_type`, `attacker_ip`, `threat_level`) before being used in queries.
+- **XSS sanitization** – raw payload data has HTML special characters escaped (`&`, `<`, `>`, `"`, `'`) before storage.
+- **Connection timeout** – each honeypot client connection has a 30-second socket timeout to prevent slow-loris style resource exhaustion.
+- **API key authentication** – write endpoints (`/api/honeypots/start`, `/api/honeypots/stop`) require a `Bearer` token when `API_KEY` is configured.
+- **Structured JSON logging** – all log output is formatted as JSON for easy ingestion by log aggregators (e.g. ELK, Splunk).
+- **Graceful shutdown** – `SIGTERM` and `SIGINT` signals stop all running honeypots cleanly before the process exits.
+- **Non-root warning** – the application logs a warning if started as root; the provided Dockerfile runs as a dedicated non-root user.
 
 ---
 
