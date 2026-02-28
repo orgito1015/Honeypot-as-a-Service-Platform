@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.pyo
+honeypot.db
+honeypot.db-shm
+honeypot.db-wal
