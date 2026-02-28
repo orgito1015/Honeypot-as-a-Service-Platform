@@ -86,7 +86,7 @@ class TestGetAttacks(unittest.TestCase):
         self.assertEqual(len(result), 3)
 
     def test_offset_works(self):
-        result_all = self.db.get_attacks(limit=10)
+        self.db.get_attacks(limit=10)
         result_offset = self.db.get_attacks(limit=10, offset=2)
         self.assertEqual(len(result_offset), 3)
 
@@ -95,6 +95,10 @@ class TestGetAttacks(unittest.TestCase):
         result = self.db.get_attacks(filters={"attack_type": "HTTP_PROBE"})
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["attack_type"], "HTTP_PROBE")
+
+    def test_invalid_filter_col_raises(self):
+        with self.assertRaises(ValueError):
+            self.db.get_attacks(filters={"bad_col": "value"})
 
     def test_records_have_expected_keys(self):
         result = self.db.get_attacks(limit=1)
@@ -152,6 +156,54 @@ class TestGetAttackStatistics(unittest.TestCase):
     def test_top_ips_is_list(self):
         stats = self.db.get_attack_statistics()
         self.assertIsInstance(stats["top_attacking_ips"], list)
+
+
+class TestAlerts(unittest.TestCase):
+    def setUp(self):
+        AttackDatabase._reset_instance()
+        self.db = AttackDatabase.get_instance(":memory:")
+
+    def tearDown(self):
+        AttackDatabase._reset_instance()
+
+    def test_record_alert_returns_id(self):
+        from datetime import datetime, timezone
+        alert_id = self.db.record_alert({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "attacker_ip": "1.2.3.4",
+            "alert_type": "HIGH_THREAT",
+            "detail": "test detail",
+            "attack_id": None,
+        })
+        self.assertIsInstance(alert_id, int)
+        self.assertGreater(alert_id, 0)
+
+    def test_get_alerts_returns_list(self):
+        from datetime import datetime, timezone
+        self.db.record_alert({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "attacker_ip": "1.2.3.4",
+            "alert_type": "HIGH_THREAT",
+            "detail": "test",
+            "attack_id": None,
+        })
+        alerts = self.db.get_alerts()
+        self.assertIsInstance(alerts, list)
+        self.assertGreater(len(alerts), 0)
+
+    def test_get_alerts_has_expected_keys(self):
+        from datetime import datetime, timezone
+        self.db.record_alert({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "attacker_ip": "1.2.3.4",
+            "alert_type": "DANGEROUS_COMMAND",
+            "detail": "wget found",
+            "attack_id": 1,
+        })
+        alerts = self.db.get_alerts(limit=1)
+        row = alerts[0]
+        for key in ("id", "timestamp", "attacker_ip", "alert_type", "detail", "attack_id"):
+            self.assertIn(key, row)
 
 
 if __name__ == "__main__":

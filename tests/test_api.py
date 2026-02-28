@@ -112,5 +112,53 @@ class TestHoneypotsEndpoint(TestAPISetup):
         self.assertEqual(resp.status_code, 400)
 
 
+class TestAlertsEndpoint(TestAPISetup):
+    def test_alerts_returns_200(self):
+        resp = self.client.get("/api/alerts")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_alerts_has_alerts_key(self):
+        resp = self.client.get("/api/alerts")
+        data = resp.get_json()
+        self.assertIn("alerts", data)
+        self.assertIsInstance(data["alerts"], list)
+
+    def test_alerts_has_count_key(self):
+        resp = self.client.get("/api/alerts")
+        data = resp.get_json()
+        self.assertIn("count", data)
+
+
+class TestStatsSummaryEndpoint(TestAPISetup):
+    def test_stats_summary_returns_200(self):
+        resp = self.client.get("/api/stats/summary")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_stats_summary_keys(self):
+        resp = self.client.get("/api/stats/summary")
+        data = resp.get_json()
+        for key in ("total_attacks", "unique_attackers", "most_targeted_service",
+                    "busiest_hour_last_24h", "attacks_by_threat_level"):
+            self.assertIn(key, data)
+
+
+class TestExportEndpoints(TestAPISetup):
+    def test_export_csv_returns_200(self):
+        resp = self.client.get("/api/export/csv")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_export_csv_content_type(self):
+        resp = self.client.get("/api/export/csv")
+        self.assertIn("text/csv", resp.content_type)
+
+    def test_export_json_returns_200(self):
+        resp = self.client.get("/api/export/json")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_export_json_has_attachment_header(self):
+        resp = self.client.get("/api/export/json")
+        self.assertIn("attachment", resp.headers.get("Content-Disposition", ""))
+
+
 if __name__ == "__main__":
     unittest.main()

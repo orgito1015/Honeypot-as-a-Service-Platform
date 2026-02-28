@@ -203,6 +203,27 @@
     </div>
   </section>
 
+  <!-- ── Alerts feed ── -->
+  <section class="panel" style="margin-top:1.5rem">
+    <h2>▸ RECENT ALERTS <span style="color:var(--muted);font-size:.7rem">(auto-refresh every 5 s)</span></h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Timestamp</th>
+            <th>Attacker IP</th>
+            <th>Alert Type</th>
+            <th>Detail</th>
+          </tr>
+        </thead>
+        <tbody id="alerts-body">
+          <tr><td colspan="5" style="color:var(--muted);padding:1rem .75rem">No alerts recorded yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
 </main>
 
 <script>
@@ -333,6 +354,27 @@ async function refreshFeed() {
   } catch(e) { console.warn('Feed error', e); }
 }
 
+// ── Alerts feed ──────────────────────────────────────────────────────────────
+
+async function refreshAlerts() {
+  try {
+    const data = await apiFetch('/api/alerts?limit=20');
+    const tbody = document.getElementById('alerts-body');
+    const alerts = data.alerts || [];
+    if (alerts.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);padding:1rem .75rem">No alerts recorded yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = alerts.map(a => `<tr>
+      <td>${a.id}</td>
+      <td>${(a.timestamp||'').replace('T',' ').slice(0,19)}</td>
+      <td style="color:var(--red)">${a.attacker_ip}</td>
+      <td style="color:var(--yellow)">${a.alert_type}</td>
+      <td style="color:var(--muted)">${(a.detail||'').slice(0,80)}</td>
+    </tr>`).join('');
+  } catch(e) { console.warn('Alerts error', e); }
+}
+
 // ── Ticker ───────────────────────────────────────────────────────────────────
 
 function updateTimestamp() {
@@ -341,7 +383,7 @@ function updateTimestamp() {
 }
 
 async function tick() {
-  await Promise.all([refreshStats(), refreshHoneypots(), refreshFeed()]);
+  await Promise.all([refreshStats(), refreshHoneypots(), refreshFeed(), refreshAlerts()]);
   updateTimestamp();
 }
 
