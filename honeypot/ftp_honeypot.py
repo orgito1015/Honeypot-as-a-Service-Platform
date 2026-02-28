@@ -67,6 +67,7 @@ class FTPHoneypot(BaseHoneypot):
         username = ""
         password = ""
         try:
+            client_sock.settimeout(30)
             client_sock.sendall(_BANNER)
             # Collect up to two commands (USER + PASS)
             for _ in range(4):
@@ -84,6 +85,8 @@ class FTPHoneypot(BaseHoneypot):
                     break
                 else:
                     client_sock.sendall(_GENERIC_ERR)
+        except socket.timeout:
+            pass
         except OSError:
             pass
         finally:

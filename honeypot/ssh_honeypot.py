@@ -64,9 +64,12 @@ class SSHHoneypot(BaseHoneypot):
         attacker_ip, attacker_port = addr[0], addr[1]
         raw_data = ""
         try:
+            client_sock.settimeout(30)
             client_sock.sendall(_SSH_BANNER)
             data = client_sock.recv(_RECV_SIZE)
             raw_data = data.decode("utf-8", errors="replace").strip()
+        except socket.timeout:
+            pass
         except OSError:
             pass
         finally:

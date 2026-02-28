@@ -5,6 +5,8 @@ from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
+_ALLOWED_FILTER_COLS = frozenset({"honeypot_type", "attack_type", "attacker_ip", "threat_level"})
+
 _DDL = """
 CREATE TABLE IF NOT EXISTS attack_events (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -16,6 +18,17 @@ CREATE TABLE IF NOT EXISTS attack_events (
     raw_data       TEXT,
     threat_level   TEXT,
     attack_pattern TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_timestamp    ON attack_events(timestamp);
+CREATE INDEX IF NOT EXISTS idx_attacker_ip  ON attack_events(attacker_ip);
+CREATE INDEX IF NOT EXISTS idx_honeypot_type ON attack_events(honeypot_type);
+CREATE TABLE IF NOT EXISTS alerts (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp   TEXT    NOT NULL,
+    attacker_ip TEXT    NOT NULL,
+    alert_type  TEXT    NOT NULL,
+    detail      TEXT,
+    attack_id   INTEGER
 );
 """
 
@@ -36,8 +49,9 @@ class AttackDatabase:
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA journal_mode=WAL;")
-        self._conn.execute(_DDL)
-        self._conn.commit()
+        # executescript() is required to run multiple DDL statements at once;
+        # it commits automatically after each statement.
+        self._conn.executescript(_DDL)
 
     @classmethod
     def get_instance(cls, db_path: str = "honeypot.db") -> "AttackDatabase":
@@ -102,6 +116,8 @@ class AttackDatabase:
         params: list = []
         if filters:
             for col, val in filters.items():
+                if col not in _ALLOWED_FILTER_COLS:
+                    raise ValueError(f"Filter column '{col}' is not allowed")
                 where_clauses.append(f"{col} = ?")
                 params.append(val)
 
@@ -155,3 +171,32 @@ class AttackDatabase:
             "attacks_by_threat_level": by_threat,
             "top_attacking_ips": top_ips,
         }
+
+    # ------------------------------------------------------------------
+    # Alert operations
+    # ------------------------------------------------------------------
+
+    def record_alert(self, alert_dict: dict) -> int:
+        """Insert an alert and return the new row id."""
+        sql = """
+        INSERT INTO alerts (timestamp, attacker_ip, alert_type, detail, attack_id)
+        VALUES (:timestamp, :attacker_ip, :alert_type, :detail, :attack_id)
+        """
+        row = {
+            "timestamp": alert_dict.get("timestamp", ""),
+            "attacker_ip": alert_dict.get("attacker_ip", ""),
+            "alert_type": alert_dict.get("alert_type", ""),
+            "detail": alert_dict.get("detail", ""),
+            "attack_id": alert_dict.get("attack_id"),
+        }
+        with self._lock:
+            cursor = self._conn.execute(sql, row)
+            self._conn.commit()
+            return cursor.lastrowid
+
+    def get_alerts(self, limit: int = 100, offset: int = 0) -> List[dict]:
+        """Retrieve alerts ordered by most recent first."""
+        sql = "SELECT * FROM alerts ORDER BY id DESC LIMIT ? OFFSET ?"
+        with self._lock:
+            cursor = self._conn.execute(sql, (limit, offset))
+            return [dict(row) for row in cursor.fetchall()]

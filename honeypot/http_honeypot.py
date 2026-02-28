@@ -74,9 +74,12 @@ class HTTPHoneypot(BaseHoneypot):
         attacker_ip, attacker_port = addr[0], addr[1]
         raw_request = ""
         try:
+            client_sock.settimeout(30)
             data = client_sock.recv(_RECV_SIZE)
             raw_request = data.decode("utf-8", errors="replace")
             client_sock.sendall(_FAKE_RESPONSE.encode())
+        except socket.timeout:
+            pass
         except OSError:
             pass
         finally:
