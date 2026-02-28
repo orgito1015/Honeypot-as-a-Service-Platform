@@ -49,7 +49,7 @@ class AttackAnalyzer:
     # ------------------------------------------------------------------
 
     def analyze_attack(self, event_dict: dict) -> dict:
-        """Analyse an attack event and return an analysis dictionary."""
+        """Analyze an attack event and return an analysis dictionary."""
         attacker_ip = event_dict.get("attacker_ip", "unknown")
         attack_type = event_dict.get("attack_type", "UNKNOWN")
 

@@ -1,6 +1,6 @@
 # Honeypot-as-a-Service Platform
 
-A production-ready, virtualized decoy system to attract, capture, and analyse attacker behaviour in real-time.  
+A production-ready, virtualized decoy system to attract, capture, and analyze attacker behavior in real-time.  
 It exposes fake SSH, HTTP, and FTP services, stores every interaction in a local SQLite database, performs live threat analysis, and surfaces everything through a Flask REST API and a dark-theme web dashboard.
 
 ---
@@ -54,7 +54,7 @@ honeypot/           – Honeypot emulators
   ftp_honeypot.py   – FTP emulator (port 2121)
 
 analyzer/
-  analyzer.py       – Singleton real-time threat analyser
+  analyzer.py       – Singleton real-time threat analyzer
 
 storage/
   database.py       – Singleton SQLite storage
@@ -138,7 +138,7 @@ All endpoints return JSON.
 
 | Method | Path             | Description                          |
 |--------|------------------|--------------------------------------|
-| GET    | /api/statistics  | Aggregated stats from DB + analyser  |
+| GET    | /api/statistics  | Aggregated stats from DB + analyzer  |
 
 ### Honeypots
 
