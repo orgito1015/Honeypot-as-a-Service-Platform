@@ -108,7 +108,7 @@ class BaseHoneypot(ABC):
                     "alert_type": alert_type,
                     "detail": (
                         f"threat_level={event.get('threat_level')} "
-                        f"attack_type={attack_type} data={_sanitize(data[:200])}"
+                        f"attack_type={attack_type} data={event.get('raw_data', '')[:200]}"
                     ),
                     "attack_id": event.get("id"),
                 })

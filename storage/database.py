@@ -52,7 +52,6 @@ class AttackDatabase:
         # executescript() is required to run multiple DDL statements at once;
         # it commits automatically after each statement.
         self._conn.executescript(_DDL)
-        self._conn.commit()
 
     @classmethod
     def get_instance(cls, db_path: str = "honeypot.db") -> "AttackDatabase":

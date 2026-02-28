@@ -86,7 +86,6 @@ class TestGetAttacks(unittest.TestCase):
         self.assertEqual(len(result), 3)
 
     def test_offset_works(self):
-        self.db.get_attacks(limit=10)
         result_offset = self.db.get_attacks(limit=10, offset=2)
         self.assertEqual(len(result_offset), 3)
 
